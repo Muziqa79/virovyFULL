@@ -1,32 +1,5 @@
 "use client";
-import { useState } from "react";
-
-const trendingMock = {
-  "Garage & Bassline": [
-    { title: "Bassline Fever", artist: "LowKey", score: 91 },
-    { title: "Night Shift", artist: "NORA", score: 88 },
-  ],
-  "DnB": [
-    { title: "Jungle Heat", artist: "DrumRiot", score: 94 },
-    { title: "Pulse Roll", artist: "BassCore", score: 89 },
-  ],
-  "Pop": [
-    { title: "Golden Hour", artist: "Lani", score: 96 },
-    { title: "Echo", artist: "Thea Rae", score: 90 },
-  ],
-  "House & EDM": [
-    { title: "Neon Dreams", artist: "DJ Flux", score: 93 },
-    { title: "Rave On", artist: "EchoBit", score: 89 },
-  ],
-  "Emerging Indie Hits": [
-    { title: "Canvas Heart", artist: "Fleur", score: 90 },
-    { title: "Backyard Lights", artist: "June Tide", score: 87 },
-  ],
-  "Rising RnB & Soul": [
-    { title: "Velvet Skin", artist: "Aria J", score: 92 },
-    { title: "Late Night Call", artist: "Zion B", score: 88 },
-  ]
-};
+import { useEffect, useState } from "react";
 
 function getBadge(score) {
   if (score >= 95) return "🔥 Viral";
@@ -35,16 +8,30 @@ function getBadge(score) {
 }
 
 export default function TrendingPage() {
+  const [allSongs, setAllSongs] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [sortBy, setSortBy] = useState("score");
   const [currentPage, setCurrentPage] = useState(1);
   const songsPerPage = 4;
 
-  const genres = Object.keys(trendingMock);
+  useEffect(() => {
+    async function fetchSongs() {
+      try {
+        const res = await fetch("/api/trending-songs");
+        const data = await res.json();
+        setAllSongs(data);
+      } catch (error) {
+        console.error("Error fetching trending songs:", error);
+      }
+    }
+    fetchSongs();
+  }, []);
+
+  const genres = Array.from(new Set(allSongs.map(song => song.genre)));
 
   let songsToShow = selectedGenre === "All"
-    ? genres.flatMap((g) => trendingMock[g].map((s) => ({ ...s, genre: g })))
-    : trendingMock[selectedGenre].map((s) => ({ ...s, genre: selectedGenre }));
+    ? allSongs
+    : allSongs.filter(song => song.genre === selectedGenre);
 
   songsToShow.sort((a, b) => {
     if (sortBy === "score") return b.score - a.score;
@@ -65,7 +52,10 @@ export default function TrendingPage() {
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
         <select
           value={selectedGenre}
-          onChange={(e) => setSelectedGenre(e.target.value)}
+          onChange={(e) => {
+            setSelectedGenre(e.target.value);
+            setCurrentPage(1);
+          }}
           style={{ padding: "0.5rem" }}
         >
           <option value="All">All Genres</option>
